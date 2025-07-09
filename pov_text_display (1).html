@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POV Text Display</title>
+  <style>
+    body {
+      background-color: black;
+      color: green;
+      font-family: monospace;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #input-area {
+      padding: 2em;
+      text-align: center;
+    }
+
+    #display {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .pixel {
+      width: 14.2vh;
+      height: 14.2vh;
+      margin: 0.3vh;
+      background-color: green;
+      opacity: 0;
+    }
+
+    .pixel.on {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="input-area">
+    <input type="text" id="textInput" placeholder="Enter text here">
+    <button onclick="startPOV()">Start POV Display</button>
+  </div>
+  <div id="display"></div>
+
+  <script>
+    const CHAR_WIDTH = 5;
+    const CHAR_HEIGHT = 7;
+
+    const font = {
+      A: ['01110','10001','10001','11111','10001','10001','10001'],
+      B: ['11110','10001','10001','11110','10001','10001','11110'],
+      C: ['01110','10001','10000','10000','10000','10001','01110'],
+      D: ['11100','10010','10001','10001','10001','10010','11100'],
+      E: ['11111','10000','10000','11110','10000','10000','11111'],
+      F: ['11111','10000','10000','11110','10000','10000','10000'],
+      G: ['01110','10001','10000','10111','10001','10001','01110'],
+      H: ['10001','10001','10001','11111','10001','10001','10001'],
+      I: ['01110','00100','00100','00100','00100','00100','01110'],
+      J: ['00001','00001','00001','00001','10001','10001','01110'],
+      K: ['10001','10010','10100','11000','10100','10010','10001'],
+      L: ['10000','10000','10000','10000','10000','10000','11111'],
+      M: ['10001','11011','10101','10101','10001','10001','10001'],
+      N: ['10001','10001','11001','10101','10011','10001','10001'],
+      O: ['01110','10001','10001','10001','10001','10001','01110'],
+      P: ['11110','10001','10001','11110','10000','10000','10000'],
+      Q: ['01110','10001','10001','10001','10101','10010','01101'],
+      R: ['11110','10001','10001','11110','10100','10010','10001'],
+      S: ['01111','10000','10000','01110','00001','00001','11110'],
+      T: ['11111','00100','00100','00100','00100','00100','00100'],
+      U: ['10001','10001','10001','10001','10001','10001','01110'],
+      V: ['10001','10001','10001','10001','10001','01010','00100'],
+      W: ['10001','10001','10001','10101','10101','10101','01010'],
+      X: ['10001','10001','01010','00100','01010','10001','10001'],
+      Y: ['10001','10001','01010','00100','00100','00100','00100'],
+      Z: ['11111','00001','00010','00100','01000','10000','11111'],
+      ' ': ['00000','00000','00000','00000','00000','00000','00000']
+    };
+
+    function getCharMatrix(char) {
+      return font[char.toUpperCase()] || font[' '];
+    }
+
+    function textToPOVColumns(text) {
+      const columns = [];
+      for (let char of text) {
+        const matrix = getCharMatrix(char);
+        for (let x = 0; x < CHAR_WIDTH; x++) {
+          const col = [];
+          for (let y = 0; y < CHAR_HEIGHT; y++) {
+            col.push(matrix[y][x] === '1');
+          }
+          columns.push(col);
+        }
+        columns.push(new Array(CHAR_HEIGHT).fill(false));
+      }
+      return columns;
+    }
+
+    async function startPOV() {
+      const text = document.getElementById('textInput').value;
+      const display = document.getElementById('display');
+      display.innerHTML = '';
+      document.getElementById('input-area').style.display = 'none';
+
+      const columns = textToPOVColumns(text);
+
+      for (let i = 0; i < columns.length; i++) {
+        const colDiv = document.createElement('div');
+        colDiv.className = 'column';
+        columns[i].forEach(blockOn => {
+          const pixel = document.createElement('div');
+          pixel.className = 'pixel';
+          if (blockOn) pixel.classList.add('on');
+          colDiv.appendChild(pixel);
+        });
+        display.innerHTML = '';
+        display.appendChild(colDiv);
+        await new Promise(resolve => setTimeout(resolve, 70));
+      }
+
+      setTimeout(startPOV, 200);
+    }
+  </script>
+</body>
+</html>
