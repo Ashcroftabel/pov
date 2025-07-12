@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POV Text Display</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: black;
+      color: green;
+      font-family: monospace;
+      overflow: hidden;
+    }
+
+    #input-area {
+      padding: 2em;
+      text-align: center;
+    }
+
+    #textInput {
+      font-size: 2em;
+      padding: 0.5em;
+      width: 80%;
+      max-width: 400px;
+    }
+
+    button {
+      font-size: 1.5em;
+      padding: 0.5em 1em;
+      margin-top: 1em;
+      cursor: pointer;
+      background-color: green;
+      color: black;
+      border: none;
+    }
+
+    #speedLabel {
+      font-size: 2em;
+      margin-bottom: 0.5em;
+      display: block;
+    }
+
+    #speedSelect {
+      width: 80%;
+      max-width: 400px;
+      height: 2em;
+    }
+
+    .color-picker {
+      margin-top: 1em;
+    }
+
+    .color-option {
+      display: inline-block;
+      width: 2em;
+      height: 2em;
+      margin: 0.3em;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+
+    #display {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .pixel {
+      width: 14.2vh;
+      height: 14.2vh;
+      margin: 0.3vh;
+      background-color: green;
+      opacity: 0;
+    }
+
+    .pixel.on {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="input-area">
+    <input type="text" id="textInput" placeholder="Enter text here">
+    <br><br>
+    <label id="speedLabel" for="speedSelect">Speed</label>
+    <input type="range" id="speedSelect" min="1" max="20" value="10">
+    <br>
+    <span id="speedValue">10</span>
+    <br><br>
+    <div class="color-picker">
+      <div class="color-option" style="background-color: yellow;" onclick="setColor('yellow')"></div>
+      <div class="color-option" style="background-color: red;" onclick="setColor('red')"></div>
+      <div class="color-option" style="background-color: green;" onclick="setColor('green')"></div>
+      <div class="color-option" style="background-color: blue;" onclick="setColor('blue')"></div>
+      <div class="color-option" style="background-color: cyan;" onclick="setColor('cyan')"></div>
+      <div class="color-option" style="background-color: magenta;" onclick="setColor('magenta')"></div>
+      <div class="color-option" style="background-color: white;" onclick="setColor('white')"></div>
+    </div>
+    <br>
+    <button onclick="initializePOV()">Start</button>
+  </div>
+
+  <div id="display"></div>
+
+  <script>
+    const CHAR_WIDTH = 5;
+    const CHAR_HEIGHT = 7;
+    let pixelColor = 'green';
+    let povRunning = false;
+
+    const font = {
+      A: ['01110','10001','10001','11111','10001','10001','10001'],
+      B: ['11110','10001','10001','11110','10001','10001','11110'],
+      C: ['01110','10001','10000','10000','10000','10001','01110'],
+      D: ['11100','10010','10001','10001','10001','10010','11100'],
+      E: ['11111','10000','10000','11110','10000','10000','11111'],
+      F: ['11111','10000','10000','11110','10000','10000','10000'],
+      G: ['01110','10001','10000','10111','10001','10001','01110'],
+      H: ['10001','10001','10001','11111','10001','10001','10001'],
+      I: ['01110','00100','00100','00100','00100','00100','01110'],
+      J: ['00001','00001','00001','00001','10001','10001','01110'],
+      K: ['10001','10010','10100','11000','10100','10010','10001'],
+      L: ['10000','10000','10000','10000','10000','10000','11111'],
+      M: ['10001','11011','10101','10101','10001','10001','10001'],
+      N: ['10001','10001','11001','10101','10011','10001','10001'],
+      O: ['01110','10001','10001','10001','10001','10001','01110'],
+      P: ['11110','10001','10001','11110','10000','10000','10000'],
+      Q: ['01110','10001','10001','10001','10101','10010','01101'],
+      R: ['11110','10001','10001','11110','10100','10010','10001'],
+      S: ['01111','10000','10000','01110','00001','00001','11110'],
+      T: ['11111','00100','00100','00100','00100','00100','00100'],
+      U: ['10001','10001','10001','10001','10001','10001','01110'],
+      V: ['10001','10001','10001','10001','10001','01010','00100'],
+      W: ['10001','10001','10001','10101','10101','10101','01010'],
+      X: ['10001','10001','01010','00100','01010','10001','10001'],
+      Y: ['10001','10001','01010','00100','00100','00100','00100'],
+      Z: ['11111','00001','00010','00100','01000','10000','11111'],
+      ' ': ['00000','00000','00000','00000','00000','00000','00000']
+    };
+
+    function getCharMatrix(char) {
+      return font[char.toUpperCase()] || font[' '];
+    }
+
+    function textToPOVColumns(text) {
+      const columns = [];
+      for (let char of text) {
+        const matrix = getCharMatrix(char);
+        for (let x = 0; x < CHAR_WIDTH; x++) {
+          const col = [];
+          for (let y = 0; y < CHAR_HEIGHT; y++) {
+            col.push(matrix[y][x] === '1');
+          }
+          columns.push(col);
+        }
+        columns.push(new Array(CHAR_HEIGHT).fill(false));
+      }
+      return columns;
+    }
+
+    document.getElementById('speedSelect').addEventListener('input', function() {
+      document.getElementById('speedValue').textContent = this.value;
+    });
+
+    function setColor(color) {
+      pixelColor = color;
+    }
+
+    async function initializePOV() {
+      const docElm = document.documentElement;
+      if (docElm.requestFullscreen) {
+        await docElm.requestFullscreen();
+      } else if (docElm.webkitRequestFullscreen) {
+        await docElm.webkitRequestFullscreen();
+      } else if (docElm.msRequestFullscreen) {
+        await docElm.msRequestFullscreen();
+      }
+      startPOV();
+    }
+
+    async function startPOV() {
+      povRunning = true;
+      const text = document.getElementById('textInput').value;
+      const display = document.getElementById('display');
+      const speed = parseInt(document.getElementById('speedSelect').value);
+
+      display.innerHTML = '';
+      document.getElementById('input-area').style.display = 'none';
+
+      const columns = textToPOVColumns(text);
+      const delay = 600 / speed;
+
+      while (povRunning) {
+        for (let i = 0; i < columns.length; i++) {
+          const colDiv = document.createElement('div');
+          colDiv.className = 'column';
+          columns[i].forEach(blockOn => {
+            const pixel = document.createElement('div');
+            pixel.className = 'pixel';
+            pixel.style.backgroundColor = pixelColor;
+            if (blockOn) pixel.classList.add('on');
+            colDiv.appendChild(pixel);
+          });
+          display.innerHTML = '';
+          display.appendChild(colDiv);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+  </script>
+</body>
+</html>
